@@ -1,16 +1,47 @@
 package no.westerdals.pg4100.mockitolecture.assignment1;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
 import java.util.List;
 
+import org.junit.Before;
 import org.junit.Test;
 
+import no.westerdals.pg4100.mockitolecture.Warehouse;
+import no.westerdals.pg4100.mockitolecture.WarehouseImpl;
+
 public class OrderTest {
+	private Order fillableOrder;
+	private Order nonFillableOrder;
+	private String productName = "ProductName";
+	private int productQuantity = 10;
+	
+	public Warehouse getWarehouse() {
+		Warehouse warehouse = new WarehouseImpl();
+		addProductsToWarehouse(warehouse);		
+		return warehouse;
+	}
+	
+	public Warehouse getMockWarehouse() {
+		Warehouse warehouse = mock(Warehouse.class);
+		addProductsToWarehouse(warehouse);
+		return warehouse;
+	}
+	
+	public void addProductsToWarehouse(Warehouse warehouse) {
+		warehouse.add(productName, productQuantity);
+	}
+	
+	@Before
+	public void SetUp() {
+		//Arrange
+		fillableOrder = new Order(productName, 1);
+		nonFillableOrder = new Order(productName, 11);
+	}
 
 	@Test
 	/**
@@ -20,7 +51,12 @@ public class OrderTest {
 	 * 		- verify that the order is filled
 	 */
 	public void orderIsFilledWhenWarehouseCanProvide() {
-		fail("Not implemented");
+		// ARRANGE
+		Warehouse warehouse = getWarehouse();
+		// ACT
+		fillableOrder.fill(warehouse);
+		// ASSERT
+		assertTrue(fillableOrder.isFilled());
 	}
 	
 	@Test
@@ -31,7 +67,12 @@ public class OrderTest {
 	 * 		- verify that the inventory is updated accordingly
 	 */
 	public void inventoryIsUpdatedWhenWarehouseFillsOrder() {
-		fail("Not implemented");
+		// ARRANGE
+		Warehouse warehouse = getWarehouse();
+		// ACT
+		fillableOrder.fill(warehouse);
+		// ASSERT
+		assertEquals(productQuantity, warehouse.getInventory(productName) + fillableOrder.getQuantity());
 	}
 
 	@Test
@@ -42,7 +83,12 @@ public class OrderTest {
 	 * 		- verify that the order is not filled
 	 */
 	public void orderIsNotFilledWhenWarehouseFailsToProvide() {
-		fail("Not implemented");
+		// ARRANGE
+		Warehouse warehouse = getWarehouse();
+		// ACT
+		nonFillableOrder.fill(warehouse);
+		// ASSERT
+		assertFalse(nonFillableOrder.isFilled());
 	}
 	
 	@Test
@@ -53,7 +99,10 @@ public class OrderTest {
 	 * 		- verify that the warehouse inventory has not changed
 	 */
 	public void inventoryIsUnchangedWhenOrderIsNotFilled() {
-		fail("Not implemented");
+		// ARRANGE
+		Warehouse warehouse = getWarehouse();
+		nonFillableOrder.fill(warehouse);
+		assertEquals(productQuantity, warehouse.getInventory(productName));
 	}
 
 	@Test
@@ -65,7 +114,17 @@ public class OrderTest {
 	 * Also make sure the order status is filled.
 	 */
 	public void warehouseShouldCheckInventoryAndUpdateQuantityWhenNeeded() {
-		fail("Not implemented");
+		// ARRANGE
+		Warehouse mockWarehouse = getMockWarehouse();
+		int quantity = fillableOrder.getQuantity();
+		// Decide what the mockWarehouse will return using when.thenReturn
+		when(mockWarehouse.hasInventory(productName, quantity)).thenReturn(true);
+		// ACT
+		fillableOrder.fill(mockWarehouse);
+		// ASSERT/VERIFY
+		verify(mockWarehouse).hasInventory(productName, quantity);
+		verify(mockWarehouse).remove(productName, quantity);
+		assertTrue(fillableOrder.isFilled());
 	}
 
 	@Test
@@ -78,7 +137,16 @@ public class OrderTest {
 	 * Also make sure the order status is NOT filled.
 	 */
 	public void warehouseShouldOnlyCheckInventoryWhenFillingIsImpossible() {
-		fail("Not implemented");
+		// ARRANGE
+		Warehouse mockWarehouse = getMockWarehouse();
+		int quantity = nonFillableOrder.getQuantity();
+		when(mockWarehouse.hasInventory(productName, quantity)).thenReturn(false);
+		// ACT
+		nonFillableOrder.fill(mockWarehouse);
+		// ASSERT/VERIFY
+		verify(mockWarehouse).hasInventory(productName, quantity);
+		verify(mockWarehouse, never()).remove(productName, quantity);
+		assertFalse(nonFillableOrder.isFilled());
 	}
 
 	@SuppressWarnings("rawtypes")
